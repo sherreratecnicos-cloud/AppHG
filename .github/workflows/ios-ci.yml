@@ -1,0 +1,33 @@
+name: iOS CI Build
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ruby and dependencies
+        run: |
+          gem install bundler
+          bundle install
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build IPA without signing
+        run: bundle exec fastlane ci_build
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GestorProyectosHG-ipa
+          path: build/**/*.ipa
