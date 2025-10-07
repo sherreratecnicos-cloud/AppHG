@@ -25,8 +25,12 @@ jobs:
         run:  cd fastlane
               bundle exec fastlane ci_build
 
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: GestorProyectosHG-ipa
-          path: build/**/*.ipa
+      - name: Upload IPA
+  uses: actions/upload-artifact@v4
+  with:
+    name: GestorProyectosHG-ipa
+    path: |
+      fastlane/output/**/*.ipa
+      output/**/*.ipa
+      build/**/*.ipa
+    if-no-files-found: warn
