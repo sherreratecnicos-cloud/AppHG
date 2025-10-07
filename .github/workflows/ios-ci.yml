@@ -20,9 +20,6 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: Generate Xcode project
-        run: xcodegen generate
-
       - name: Build IPA without signing
         run: bundle exec fastlane ci_build
 
