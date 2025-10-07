@@ -1,36 +1,73 @@
-name: iOS CI Build
+name: iOS CI
 
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
   build:
     runs-on: macos-latest
 
+    env:
+      LC_ALL: "en_US.UTF-8"
+      LANG: "en_US.UTF-8"
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
-      - name: Install Ruby and dependencies
+      - name: Set up Ruby (fastlane)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2' 
+
+      - name: Install fastlane
+        run: gem install fastlane
+
+      - name: Install dependencies (SPM / CocoaPods)
         run: |
-          gem install bundler
-          bundle install
+          # Si usas CocoaPods:
+          # sudo gem install cocoapods
+          # pod install --project-directory=MyApp
+          # Si usas SPM no hace falta
+          echo "Dependencies step (adjust to your project)"
 
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: Install certificate
+        if: secrets.APPLE_CERT_P12 && secrets.APPLE_CERT_PASSWORD
+        run: |
+          echo "${{ secrets.APPLE_CERT_P12 }}" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security import certificate.p12 -k ~/Library/Keychains/build.keychain -P "${{ secrets.APPLE_CERT_PASSWORD }}" -T /usr/bin/codesign
+          security list-keychains -s ~/Library/Keychains/build.keychain
+          security default-keychain -s ~/Library/Keychains/build.keychain
+          security unlock-keychain -p "" ~/Library/Keychains/build.keychain
 
-      - name: Build IPA without signing
-        
-        run:  cd fastlane
-              bundle exec fastlane ci_build
+      - name: Install provisioning profile
+        if: secrets.MOBILEPROVISION_BASE64
+        run: |
+          echo "${{ secrets.MOBILEPROVISION_BASE64 }}" | base64 --decode > profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
 
-      - name: Upload IPA
-  uses: actions/upload-artifact@v4
-  with:
-    name: GestorProyectosHG-ipa
-    path: |
-      fastlane/output/**/*.ipa
-      output/**/*.ipa
-      build/**/*.ipa
-    if-no-files-found: warn
+      - name: Set up Xcode version (optional)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'  # ajustar a la versión disponible/que necesites
+
+      - name: Run fastlane build
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          cd MyProjectFolder || true
+          fastlane ci_build
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ipa
+          path: ./build/*.ipa  # ajustar ruta según salida de fastlane/gym
