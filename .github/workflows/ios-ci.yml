@@ -44,7 +44,7 @@ jobs:
             desc "Build unsigned IPA for CI"
             lane :ci_build do
               build_app(
-                project: "GestorProyectosHG.xcodeproj",
+                project: "../GestorProyectosHG.xcodeproj",
                 scheme: "GestorProyectosHG",
                 export_method: "ad-hoc",
                 skip_signing: true,
