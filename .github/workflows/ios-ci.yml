@@ -21,7 +21,9 @@ jobs:
         run: brew install xcodegen
 
       - name: Build IPA without signing
-        run: bundle exec fastlane ci_build
+        
+        run:  cd fastlane
+              bundle exec fastlane ci_build
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
