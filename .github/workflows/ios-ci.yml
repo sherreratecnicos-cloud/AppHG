@@ -17,52 +17,60 @@ jobs:
       LANG: en_US.UTF-8
 
     steps:
+      # 1️⃣ Clonar el repositorio
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2️⃣ Instalar Ruby y Bundler
       - name: Install Ruby and Bundler
         run: |
           gem install bundler
           bundle init || true
 
+      # 3️⃣ Instalar CocoaPods (si tu proyecto lo usa)
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          pod install --project-directory=.
+
+      # 4️⃣ Instalar Fastlane
       - name: Install Fastlane
         run: |
           gem install fastlane -NV
           mkdir -p fastlane
           echo "opt_out_usage" > fastlane/Fastfile || true
 
+      # 5️⃣ Verificar versión de Fastlane
       - name: Verify Fastlane version
         run: fastlane --version
 
+      # 6️⃣ Crear Fastfile y ejecutar build
       - name: Run Fastlane build
         run: |
-          cd fastlane
-          cat <<'RUBY' > Fastfile
+          cat <<'RUBY' > fastlane/Fastfile
           default_platform(:ios)
 
           platform :ios do
             desc "Build unsigned IPA for CI"
             lane :ci_build do
               build_app(
-                project: "../GestorProyectosHG.xcodeproj",
+                project: "GestorProyectosHG.xcodeproj",
                 scheme: "GestorProyectosHG",
                 export_method: "ad-hoc",
                 skip_signing: true,
-                output_directory: "output",
+                output_directory: "fastlane/output",
                 output_name: "GestorProyectosHG.ipa"
               )
             end
           end
           RUBY
 
-          bundle exec fastlane ios ci_build
+          bundle exec fastlane ios ci_build --verbose
 
+      # 7️⃣ Subir IPA como artefacto
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: GestorProyectosHG-ipa
-          path: |
-            fastlane/output/**/*.ipa
-            output/**/*.ipa
-            build/**/*.ipa
+          path: fastlane/output/**/*.ipa
           if-no-files-found: warn
